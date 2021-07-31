@@ -7,7 +7,10 @@
 2. Handle critic login
 3. CRUD operations on movies
 4. Movie metadata
-5. Add reviews
-6. View movies
-7. Search movie by title, cast or director
-8. Detailed movie view
+5. View movies
+6. Search movie by title, cast or director
+7. Detailed movie view
+Add reviews (optional)
+
+indexing
+seek tell

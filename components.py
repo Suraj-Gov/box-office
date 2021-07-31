@@ -3,10 +3,15 @@ from theme import *
 
 
 def header(root, title):
-    x = Label(root,
-              pady=4,
-              text=title, fg=font_color, bg=bg_color,
-              font=('bold', 32), justify='center')
+    x = Label(
+        root,
+        pady=4,
+        text=title,
+        fg=font_color,
+        bg=bg_color,
+        font=("bold", 32),
+        justify="center",
+    )
     return x
 
 
@@ -20,8 +25,7 @@ def new_window(root, title):
 
 
 def button(root, title, command):
-    x = Button(root,
-               text=title, highlightbackground=bg_color, command=command)
+    x = Button(root, text=title, highlightbackground=bg_color, command=command)
     return x
 
 
@@ -37,12 +41,10 @@ def centered_frame(root):
 
 
 def form_label(root, title):
-    x = Label(root, text=title, padx=2,
-              bg=bg_color, fg=font_color)
+    x = Label(root, text=title, padx=2, bg=bg_color, fg=font_color)
     return x
 
 
 def input_text(root):
-    x = Entry(
-        root, width=30)
+    x = Entry(root, width=30)
     return x
