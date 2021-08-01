@@ -2,6 +2,19 @@ from tkinter import *
 from theme import *
 
 
+def label(root, text, justify='left'):
+    x = Label(
+        root,
+        text=text,
+        padx=1,
+        pady=1,
+        bg=bg_color,
+        fg=font_color,
+        justify=justify
+    )
+    return x
+
+
 def header(root, title):
     x = Label(
         root,
@@ -34,17 +47,12 @@ def frame(root):
     return x
 
 
-def centered_frame(root):
-    x = frame(root)
-    x.place(relx=0.5, rely=0.5)
-    return x
-
 
 def form_label(root, title):
     x = Label(root, text=title, padx=2, bg=bg_color, fg=font_color)
     return x
 
 
-def input_text(root):
-    x = Entry(root, width=30)
+def input_text(root, text):
+    x = Entry(root, width=30, textvariable=text)
     return x

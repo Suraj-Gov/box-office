@@ -15,3 +15,5 @@
 
 indexing
 seek tell
+
+Movie has TITLE, DIRECTOR, CAST, ABOUT

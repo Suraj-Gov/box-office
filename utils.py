@@ -7,8 +7,8 @@ from theme import *
 
 
 # https://www.py4u.net/discuss/172694
-def create_or_replace_window(root, current_window, title):
-    """Destroy current window, create new window"""
+def create_or_replace_window(root, title, current_window=None):
+    """Destroy current window if current_window is provided, create new window"""
     if current_window is not None:
         current_window.destroy()
     new_window = tkinter.Toplevel(root)
@@ -20,12 +20,16 @@ def create_or_replace_window(root, current_window, title):
 
     # if the user kills the window via the window manager,
     # exit the application.
-    new_window.wm_protocol("WM_DELETE_WINDOW", root.destroy)
+    if current_window != None:
+        new_window.wm_protocol("WM_DELETE_WINDOW", root.destroy)
 
     return new_window
 
 
 def get_offset(filename, search_str):
+    """requires a index key to search,
+    returns offset in Int
+    if no index found, returns -1"""
     # get offset from the key provided (used for index files)
     search_arr = []
     with open(filename, "a+") as file_data:
@@ -50,8 +54,14 @@ def get_offset(filename, search_str):
     return -1
 
 
-def get_record(key, index_filename, record_filename):
-    offset = get_offset(index_filename, key)
+def get_record(key, index_filename, record_filename, provided_offset=-1):
+    """requires index key, optional provided_offset
+    returns record/data string
+    returns False if no record found"""
+    offset = provided_offset if provided_offset != -1 else get_offset(
+        index_filename, key)
+    if offset == -1:
+        return False
     with open(record_filename, 'a+') as record_file:
         record_file.seek(offset)
         record_str = record_file.readline()
@@ -59,7 +69,28 @@ def get_record(key, index_filename, record_filename):
         return record_str
 
 
+def get_all_records(record_filename):
+    """ 
+    requires DATA_FILE
+    returns record_line[]
+    returns False if no records are in file yet
+    """
+    record_lines = []
+    with open(record_filename, "a+") as record_file_data:
+        record_file_data.seek(0, os.SEEK_SET)
+        record_lines = list(
+            map(
+                lambda x: record_lines.append(x),
+                record_file_data.read().split("\n")
+            )
+        )
+    return record_lines if len(record_lines) > 1 else False if record_lines[0] == "" else record_lines
+
+
 def read_index_file(filename):
+    """reads a index file,
+    returns (idx, offset)[]
+    check for empty array if no keys are found"""
     arr = []
     with open(filename, "a+") as file_data:
         file_data.seek(0)
@@ -73,6 +104,9 @@ def read_index_file(filename):
 
 
 def check_key_exist(key, index_file):
+    """checks key existance
+    returns True if exists
+    returns False if not"""
     offset = get_offset(index_file, key)
     if offset != -1:
         return True
@@ -80,6 +114,11 @@ def check_key_exist(key, index_file):
 
 
 def create_record(record_filename, index_filename, key, data):
+    """creates a record
+    needs a key as primary key
+    data is just a string
+    returns None if key already exists
+    returns True if record created successfully"""
     does_key_exist = check_key_exist(key, index_filename)
     if does_key_exist:
         return None
@@ -139,6 +178,7 @@ def create_record(record_filename, index_filename, key, data):
 
 
 def get_password_hash(password):
+    """generate hash for a plaintext password"""
     salt = hashlib.sha256(os.urandom(60)).hexdigest().encode('ascii')
     pwdhash = hashlib.pbkdf2_hmac('sha512', password.encode('utf-8'),
                                   salt, 100000)
@@ -147,6 +187,7 @@ def get_password_hash(password):
 
 
 def verify_password(provided_password, stored_password):
+    """compare and check if the given plaintext password is equal to the hashed password stored"""
     salt = stored_password[:64]
     stored_password = stored_password[64:]
     pwdhash = hashlib.pbkdf2_hmac('sha512',
