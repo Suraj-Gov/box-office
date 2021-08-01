@@ -1,7 +1,28 @@
+import tkinter
 from filenames import USER_INDEX_FILE
 import os
 import binascii
 import hashlib
+from theme import *
+
+
+# https://www.py4u.net/discuss/172694
+def create_or_replace_window(root, current_window, title):
+    """Destroy current window, create new window"""
+    if current_window is not None:
+        current_window.destroy()
+    new_window = tkinter.Toplevel(root)
+    new_window.title(title)
+    new_window.geometry(window_geometry)
+    new_window.resizable(False, False)
+    new_window.title(title)
+    new_window.configure(bg=bg_color)
+
+    # if the user kills the window via the window manager,
+    # exit the application.
+    new_window.wm_protocol("WM_DELETE_WINDOW", root.destroy)
+
+    return new_window
 
 
 def get_offset(filename, search_str):
