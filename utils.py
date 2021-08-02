@@ -1,14 +1,44 @@
+from io import SEEK_END, SEEK_SET
 import tkinter
-from filenames import USER_INDEX_FILE
+from filenames import MOVIE_DATA_FILE, USER_INDEX_FILE
 import os
 import binascii
 import hashlib
 from theme import *
+from tempfile import mkstemp
+from shutil import move, copymode
+
+RECORD_LENGTH = 511
+# line-break at end
 
 
-# https://www.py4u.net/discuss/172694
+def write_between_file(filename, before_str, data, write_type='ADD'):
+    """write between file, should provide a line-break"""
+    # https://stackoverflow.com/questions/39086/search-and-replace-a-line-in-a-file-in-python
+    temp_fd, abs_path = mkstemp()
+    old_file = open(filename, 'a+')
+    old_file.seek(0, SEEK_SET)
+    old_file_abs_path = os.path.abspath(filename)
+    with os.fdopen(temp_fd, 'w') as new_file:
+        new_data = ""
+        for line in old_file:
+            if line != before_str:
+                new_data += line
+            else:
+                if write_type == 'ADD':
+                    new_data += data + line
+                else:
+                    new_data += data
+        old_file.close()
+        new_file.write(new_data)
+    copymode(old_file_abs_path, abs_path)
+    os.remove(old_file_abs_path)
+    move(abs_path, old_file_abs_path)
+
+
 def create_or_replace_window(root, title, current_window=None):
     """Destroy current window if current_window is provided, create new window"""
+    # https://www.py4u.net/discuss/172694
     if current_window is not None:
         current_window.destroy()
     new_window = tkinter.Toplevel(root)
@@ -26,13 +56,13 @@ def create_or_replace_window(root, title, current_window=None):
     return new_window
 
 
-def get_offset(filename, search_str):
+def get_offset(index_filename, search_str):
     """requires a index key to search,
     returns offset in Int
     if no index found, returns -1"""
     # get offset from the key provided (used for index files)
     search_arr = []
-    with open(filename, "a+") as file_data:
+    with open(index_filename, "a+") as file_data:
         file_data.seek(0)
         for line_str in file_data:
             line = line_str.strip()
@@ -54,7 +84,7 @@ def get_offset(filename, search_str):
     return -1
 
 
-def get_record(key, index_filename, record_filename, provided_offset=-1):
+def get_record(key, index_filename, record_filename, provided_offset=-1, unpadded=True):
     """requires index key, optional provided_offset
     returns record/data string
     returns False if no record found"""
@@ -65,7 +95,8 @@ def get_record(key, index_filename, record_filename, provided_offset=-1):
     with open(record_filename, 'a+') as record_file:
         record_file.seek(offset)
         record_str = record_file.readline()
-        record_str = record_str.strip()
+        if unpadded:
+            record_str = record_str.strip()
         return record_str
 
 
@@ -78,13 +109,10 @@ def get_all_records(record_filename):
     record_lines = []
     with open(record_filename, "a+") as record_file_data:
         record_file_data.seek(0, os.SEEK_SET)
-        record_lines = list(
-            map(
-                lambda x: record_lines.append(x),
-                record_file_data.read().split("\n")
-            )
-        )
-    return record_lines if len(record_lines) > 1 else False if record_lines[0] == "" else record_lines
+        record_lines = record_file_data.read().split("\n")
+        record_lines = list(map(lambda x: x.strip(), record_lines))
+        record_lines = list(filter(lambda x: x != "", record_lines))
+        return record_lines if len(record_lines) > 1 else False if record_lines[0] == "" else record_lines
 
 
 def read_index_file(filename):
@@ -103,25 +131,25 @@ def read_index_file(filename):
     return arr
 
 
-def check_key_exist(key, index_file):
+def check_key_exist(key, index_filename):
     """checks key existance
     returns True if exists
     returns False if not"""
-    offset = get_offset(index_file, key)
+    offset = get_offset(index_filename, key)
     if offset != -1:
         return True
     return False
 
 
-def create_record(record_filename, index_filename, key, data):
+def create_record(record_filename: str, index_filename: str, key: str, data: str):
     """creates a record
     needs a key as primary key
-    data is just a string
-    returns None if key already exists
+    data is just a non padded string
     returns True if record created successfully"""
     does_key_exist = check_key_exist(key, index_filename)
     if does_key_exist:
         return None
+    data = data.ljust(RECORD_LENGTH, " ")
     with open(record_filename, "a+") as record_data:
         # write the data at the end of file
         record_data.seek(0, os.SEEK_END)
@@ -130,7 +158,7 @@ def create_record(record_filename, index_filename, key, data):
         with open(index_filename, 'a+') as index_data:
             index_data.seek(0)
             # open index_file and read to array
-            idx_arr = read_index_file(USER_INDEX_FILE)
+            idx_arr = read_index_file(index_filename)
             # if no indexes exist
             # if len(idx_arr) == 0:
             #     index_data.write(f"{key}|{start_pos}\n")
@@ -147,8 +175,7 @@ def create_record(record_filename, index_filename, key, data):
             if True:
                 # if multiple indexes exist do a binary_search
                 l = 0
-                idx_arr_len = len(idx_arr)
-                r = idx_arr_len - 1
+                r = len(idx_arr) - 1
                 next_idx = None
                 while l <= r:
                     mid = (l + r) // 2
@@ -156,25 +183,43 @@ def create_record(record_filename, index_filename, key, data):
                     if idx < key:
                         l = mid + 1
                         # idx@mid < key < idx@mid+1 (between those two), insert between them
-                        if key < idx_arr[l][0]:
-                            next_idx = idx_arr[l][0]
-                            idx_arr.insert(l, key)
-                            break
+                        try:
+                            if key < idx_arr[l][0]:
+                                next_idx = "|".join(idx_arr[l])
+                                idx_arr.insert(l, key)
+                                break
+                        except IndexError:
+                            idx_arr.append(key)
+                            next_idx = "|".join(idx_arr[-1])
                     elif idx > key:
                         r = mid - 1
                         # idx@mid-1 < key < idx#mid (between those two), insert between them
-                        if key > idx_arr[r][0]:
-                            next_idx = idx_arr[mid][0]
-                            idx_arr.insert(mid, key)
-                            break
+                        try:
+                            if key > idx_arr[r][0]:
+                                next_idx = "|".join(idx_arr[r])
+                                idx_arr.insert(mid, key)
+                                break
+                        except:
+                            idx_arr.insert(0, key)
+                            next_idx = "|".join(idx_arr[0])
                 # finish inserting, write to the file
                 # write just before the next index
-                pos_before_next_idx = get_offset(index_filename, next_idx)
-                if(pos_before_next_idx == -1):
-                    pos_before_next_idx = 0
-                index_data.seek(pos_before_next_idx)
-                index_data.write(f"{key}|{start_pos}\n")
+                write_between_file(
+                    index_filename, next_idx + "\n", f"{key}|{start_pos}\n")
                 return True
+
+
+def update_record(record_filename: str, index_filename: str, key: str, record_str: str):
+    """provide the key and record_str, should provide padded str for data_files"""
+    does_key_exist = check_key_exist(key, index_filename)
+    if does_key_exist:
+        replace_str = get_record(
+            key, index_filename, record_filename, unpadded=False)
+        write_between_file(record_filename, replace_str,
+                           record_str + "\n", write_type="REPLACE")
+        return True
+    else:
+        return None
 
 
 def get_password_hash(password):

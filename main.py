@@ -27,7 +27,7 @@ def login_user(username_field, password_field):
         state, username_field, password_field)
     if is_authenticated:
         active_window = render_view_movies_window(
-            app, active_window, add_update_movie)
+            app, active_window)
 
 
 def login_signup():
@@ -44,6 +44,8 @@ def start():
     active_window = render_start_window(app, active_window, login_signup, None)
 
 
-start()
+render_view_movies_window(app, active_window)
+# TODO change to start()
+# start()
 
 app.mainloop()

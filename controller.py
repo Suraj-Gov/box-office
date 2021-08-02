@@ -41,3 +41,36 @@ def verify_login(state, username, password):
                 return False
         else:
             return False
+
+
+def add_update_movie(movie_title):
+    """provide a movie_title
+    if movie title exists in record, it returns unpadded movie_record
+    if movie title not exist in record,
+    returns True if user wants to add the movie
+    else returns False"""
+    movie_record = get_record(movie_title, MOVIE_INDEX_FILE, MOVIE_DATA_FILE)
+    if not movie_record:
+        does_want_to_add_movie = messagebox.askokcancel(
+            message='Movie doesn\'t exist.\nDo you want to add the movie?')
+        if does_want_to_add_movie:
+            return True
+        else:
+            return False
+    else:
+        return movie_record.strip()
+
+
+def add_update_movie_record(title: str, director: str, cast: str, about: str, opt: str):
+    """provide movie details, opt = "ADD" | "UPDATE"
+    returns True if inserted successfully, else False"""
+    title = title.replace("|", "")
+    director = director.replace("|", "")
+    cast = cast.replace("|", "")
+    about = about.replace("|", "")
+    data = f"{title}|{director}|{cast}|{about}"
+    if opt == "ADD":
+        create_record(MOVIE_DATA_FILE, MOVIE_INDEX_FILE, title, data)
+    elif opt == "UPDATE":
+        update_record(MOVIE_DATA_FILE, MOVIE_INDEX_FILE,
+                      title, data.ljust(RECORD_LENGTH))

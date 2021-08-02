@@ -47,9 +47,14 @@ def frame(root):
     return x
 
 
+def padded_frame(root):
+    x = frame(root)
+    x.configure(pady=4)
+    return x
+
 
 def form_label(root, title):
-    x = Label(root, text=title, padx=2, bg=bg_color, fg=font_color)
+    x = Label(root, text=title, padx=2, bg=bg_color, fg=font_color, width=14)
     return x
 
 
