@@ -2,14 +2,14 @@ from tkinter import *
 from theme import *
 
 
-def label(root, text, justify="left"):
+def label(root, text: str, justify="left"):
     x = Label(
         root, text=text, padx=1, pady=1, bg=bg_color, fg=font_color, justify=justify
     )
     return x
 
 
-def header(root, title):
+def header(root, title: str):
     x = Label(
         root,
         pady=4,
@@ -22,7 +22,7 @@ def header(root, title):
     return x
 
 
-def new_window(root, title):
+def new_window(root, title: str):
     x = Toplevel(root)
     x.geometry(window_geometry)
     x.resizable(False, False)
@@ -31,7 +31,7 @@ def new_window(root, title):
     return x
 
 
-def button(root, title, command, fg="white"):
+def button(root, title: str, command, fg="white"):
     x = Button(root, text=title, fg=fg, highlightbackground=bg_color, command=command)
     return x
 
@@ -47,12 +47,12 @@ def padded_frame(root):
     return x
 
 
-def form_label(root, title):
+def form_label(root, title: str):
     x = Label(root, text=title, padx=2, bg=bg_color, fg=font_color, width=14)
     return x
 
 
-def input_text(root, text):
+def input_text(root, text: StringVar):
     x = Entry(root, width=30, textvariable=text)
     return x
 

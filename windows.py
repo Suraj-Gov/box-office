@@ -3,6 +3,7 @@ from theme import *
 from components import *
 from filenames import *
 from utils import *
+from typing import List
 import state
 
 
@@ -59,12 +60,13 @@ def render_login_signup_window(
 def render_view_movies_window(app: Tk, active_window: Toplevel):
 
     movies_list = None
-    # hoisting up the movies_list Listbox
+    search_str_var = StringVar()
+    # hoisting up the movies_list Listbox and search_str_var
 
-    def add_update_movie(app):
+    def add_update_movie(app: Tk):
         render_add_update_movies_window(app)
 
-    def load_movies(movies_list, movie_data):
+    def load_movies(movies_list: Listbox, movie_data: List[str]):
         movies_list.delete(0, movies_list.size() - 1)
         movie_data.clear()
         movie_data.extend(get_all_records(MOVIE_INDEX_FILE))
@@ -72,30 +74,53 @@ def render_view_movies_window(app: Tk, active_window: Toplevel):
             movie_title = movie_record_str.split("|")[0]
             movies_list.insert(END, movie_title)
 
+    def search_movies(movies_list: Listbox, movie_data: List[str], search_str: str):
+        """searches for movies with the given search_str"""
+        movies_list.delete(0, movies_list.size() - 1)
+        movie_data.clear()
+        movie_idxs = get_all_records(MOVIE_INDEX_FILE)
+        if movie_idxs == False:
+            return
+        for movie in movie_idxs:
+            title, _ = movie.split("|")
+            if not title.find(search_str):
+                movie_data.append(movie)
+        for movie_record_str in movie_data:
+            title, _ = movie_record_str.split("|")
+            movies_list.insert(END, title)
+
+    def search(e: Event):
+        search_val = search_str_var.get() + e.char
+        print(search_val)
+        search_movies(movies_list, movie_data, search_val)
+
     movie_data = []
-    view_movies_window = create_or_replace_window(app, "Movies", active_window)
-    active_window = view_movies_window
-    label(active_window, f"Hey, {state.user}", justify="center").pack()
-    button_frames = frame(view_movies_window)
-    button_frames.pack()
+    window = create_or_replace_window(app, "Movies", active_window)
+    active_window = window
+    search_text = input_text(window, search_str_var)
+    search_text.bind("<Key>", search)
+    search_text.pack()
+    if state.user:
+        label(active_window, f"Hey, {state.user}", justify="center").pack()
+    button_frames = frame(window)
+    if state.user:
+        button_frames.pack()
     button(button_frames, "Add / Update Movie", lambda: add_update_movie(app)).grid(
         row=1, column=0
     )
-    button(
-        button_frames, "Refresh movies", lambda: load_movies(movies_list, movie_data)
-    ).grid(row=1, column=1)
+    button(button_frames, "⟳", lambda: load_movies(movies_list, movie_data)).grid(
+        row=1, column=1
+    )
 
     movie_indexes = read_index_file(MOVIE_INDEX_FILE)
     if len(movie_indexes) == 0:
-        no_movies_stored_label = label(
-            view_movies_window, text="No movies stored", justify=CENTER
-        )
+        no_movies_stored_label = label(window, text="No movies stored", justify=CENTER)
         no_movies_stored_label.pack()
     else:
-        scroll = Scrollbar(view_movies_window)
+        scroll = Scrollbar(window)
         scroll.pack(side=RIGHT, fill=Y)
         movies_list = Listbox(
-            view_movies_window,
+            window,
             bg=bg_color,
             fg=font_color,
             yscrollcommand=scroll.set,
@@ -117,14 +142,14 @@ def render_view_movies_window(app: Tk, active_window: Toplevel):
                 int(offset),
                 unpadded=True,
             )
-            if state.role is not None:
+            if state.user:
                 render_movie_details_edit_window(app, movie_record=data)
             else:
                 render_movie_details_view_window(app, data)
 
         movies_list.bind("<<ListboxSelect>>", select_movie)
 
-    return view_movies_window
+    return window
 
 
 def render_add_update_movies_window(app: Tk):
@@ -152,7 +177,6 @@ def render_add_update_movies_window(app: Tk):
 
 def render_movie_details_view_window(app: Tk, movie_record: str):
     """provide app, movie_record(str)(unpadded), should show only a saved movie"""
-    print(movie_record, "movie_record")
     title, director, cast, about = movie_record.split("|")
     window = create_or_replace_window(app, f"Movie details - {title}")
     header(window, title).pack()

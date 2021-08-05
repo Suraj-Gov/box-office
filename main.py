@@ -46,9 +46,14 @@ def login_signup():
     )
 
 
+def view_as_user():
+    global app, active_window
+    active_window = render_view_movies_window(app, active_window)
+
+
 def start():
     global app, active_window
-    active_window = render_start_window(app, active_window, login_signup, None)
+    active_window = render_start_window(app, active_window, login_signup, view_as_user)
 
 
 # render_view_movies_window(app, active_window)

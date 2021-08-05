@@ -108,7 +108,7 @@ def get_record(key, index_filename, record_filename, provided_offset=-1, unpadde
         return record_str
 
 
-def get_all_records(record_filename):
+def get_all_records(record_filename: str):
     """
     requires DATA_FILE
     returns record_line[]
