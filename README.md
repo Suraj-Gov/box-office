@@ -7,8 +7,8 @@
 1. Handle critic signup (DONE)
 2. Handle critic login (DONE)
 3. CRUD operations on movies
-4. Movie metadata
-5. View movies
+4. Movie metadata (DONE)
+5. View movies (DONE)
 6. Search movie by title, cast or director
 7. Detailed movie view
    Add reviews (optional)

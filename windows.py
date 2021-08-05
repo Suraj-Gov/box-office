@@ -3,11 +3,12 @@ from theme import *
 from components import *
 from filenames import *
 from utils import *
+import state
 
 
-def render_start_window(app, active_window, cfn_critic, cfn_user):
+def render_start_window(app: Tk, active_window: Toplevel, cfn_critic, cfn_user):
     """Generate start window, provide a click fn to buttons"""
-    start_window = create_or_replace_window(app, 'Box Office', active_window)
+    start_window = create_or_replace_window(app, "Box Office", active_window)
     start_window.title("Box Office")
     start_window.geometry(window_geometry)
     start_window.configure(background=bg_color)
@@ -15,7 +16,7 @@ def render_start_window(app, active_window, cfn_critic, cfn_user):
     title.pack()
 
     center_frame = frame(start_window)
-    center_frame.place(relx=0.5, rely=0.5, anchor='center')
+    center_frame.place(relx=0.5, rely=0.5, anchor="center")
     login_button = button(center_frame, "Continue as critic", cfn_critic)
     login_button.pack()
     view_button = button(center_frame, "View as user", cfn_user)
@@ -23,11 +24,16 @@ def render_start_window(app, active_window, cfn_critic, cfn_user):
     return start_window
 
 
-def render_login_signup_window(app, active_window, username_str_var, password_str_var, cfn_login):
+def render_login_signup_window(
+    app: Tk,
+    active_window: Toplevel,
+    username_str_var: StringVar,
+    password_str_var: StringVar,
+    cfn_login,
+):
     """Generate login_signup window, provide a cfn (username_field, password_field)"""
 
-    login_window = create_or_replace_window(
-        app,  'Login / Signup', active_window)
+    login_window = create_or_replace_window(app, "Login / Signup", active_window)
     active_window = login_window
     login_header = header(login_window, "Login or Signup as a Critic")
     login_header.pack()
@@ -44,15 +50,13 @@ def render_login_signup_window(app, active_window, username_str_var, password_st
     password_field = input_text(password_frame, password_str_var)
     password_field.grid(row=0, column=1)
     password_frame.pack()
-    login_button = button(
-        login_frame, "Login / Signup", cfn_login
-    )
+    login_button = button(login_frame, "Login / Signup", cfn_login)
     login_button.pack()
-    login_frame.place(relx=0.5, rely=0.5, anchor='center')
+    login_frame.place(relx=0.5, rely=0.5, anchor="center")
     return login_window
 
 
-def render_view_movies_window(app, active_window):
+def render_view_movies_window(app: Tk, active_window: Toplevel):
 
     movies_list = None
     # hoisting up the movies_list Listbox
@@ -60,89 +64,132 @@ def render_view_movies_window(app, active_window):
     def add_update_movie(app):
         render_add_update_movies_window(app)
 
-    movie_data = []
-
-    def load_movies(movies_list):
+    def load_movies(movies_list, movie_data):
         movies_list.delete(0, movies_list.size() - 1)
-        movie_data = get_all_records(MOVIE_DATA_FILE)
+        movie_data.clear()
+        movie_data.extend(get_all_records(MOVIE_INDEX_FILE))
         for movie_record_str in movie_data:
             movie_title = movie_record_str.split("|")[0]
             movies_list.insert(END, movie_title)
 
-    view_movies_window = create_or_replace_window(app, 'Movies', active_window)
+    movie_data = []
+    view_movies_window = create_or_replace_window(app, "Movies", active_window)
     active_window = view_movies_window
+    label(active_window, f"Hey, {state.user}", justify="center").pack()
     button_frames = frame(view_movies_window)
     button_frames.pack()
+    button(button_frames, "Add / Update Movie", lambda: add_update_movie(app)).grid(
+        row=1, column=0
+    )
     button(
-        button_frames, 'Add / Update Movie', lambda: add_update_movie(app)).grid()
-    button(button_frames, 'Refresh movies', lambda: load_movies(
-        movies_list)).grid(row=0, column=1)
+        button_frames, "Refresh movies", lambda: load_movies(movies_list, movie_data)
+    ).grid(row=1, column=1)
 
     movie_indexes = read_index_file(MOVIE_INDEX_FILE)
     if len(movie_indexes) == 0:
         no_movies_stored_label = label(
-            view_movies_window, text='No movies stored', justify=CENTER)
+            view_movies_window, text="No movies stored", justify=CENTER
+        )
         no_movies_stored_label.pack()
     else:
         scroll = Scrollbar(view_movies_window)
         scroll.pack(side=RIGHT, fill=Y)
         movies_list = Listbox(
-            view_movies_window, bg=bg_color, fg=font_color, yscrollcommand=scroll.set, height=30, font=('bold', 28), selectbackground=lighter_bg_color)
-        load_movies(movies_list)
+            view_movies_window,
+            bg=bg_color,
+            fg=font_color,
+            yscrollcommand=scroll.set,
+            height=30,
+            font=("bold", 28),
+            selectbackground=lighter_bg_color,
+        )
+        load_movies(movies_list, movie_data)
         scroll.config(command=movies_list.yview)
         movies_list.pack(fill=X)
 
         def select_movie(_):
             idx = movies_list.curselection()[0]
-            print(movie_data[idx])
+            movie_title, offset = movie_data[idx].split("|")
+            data = get_record(
+                movie_title,
+                MOVIE_INDEX_FILE,
+                MOVIE_DATA_FILE,
+                int(offset),
+                unpadded=True,
+            )
+            if state.role is not None:
+                render_movie_details_edit_window(app, movie_record=data)
+            else:
+                render_movie_details_view_window(app, data)
 
         movies_list.bind("<<ListboxSelect>>", select_movie)
 
     return view_movies_window
 
 
-def render_add_update_movies_window(app):
-
+def render_add_update_movies_window(app: Tk):
     def run(movie_title: str):
         movie_status = add_update_movie(movie_title)
         if movie_status is False:
             return
         else:
             if movie_status == True:
-                render_movie_details_window(app, None, movie_title)
+                render_movie_details_edit_window(app, None, movie_title)
             else:
-                render_movie_details_window(app, movie_status)
+                render_movie_details_edit_window(app, movie_status)
 
-    add_update_movie_window = create_or_replace_window(
-        app, 'Add / Update Movie')
+    add_update_movie_window = create_or_replace_window(app, "Add / Update Movie")
     title_str_var = StringVar(app)
     title_frame = frame(add_update_movie_window)
     title_frame.pack()
-    title_label = label(title_frame, 'Enter the movie title',
-                        justify='center')
+    title_label = label(title_frame, "Enter the movie title", justify="center")
     title_label.configure(pady=5)
     title_label.pack()
     input_text(title_frame, text=title_str_var).pack()
-    add_update_button = button(title_frame, 'Add / Update Movie',
-                               lambda: run(title_str_var.get()))
-    add_update_button.configure(pady=6)
-    add_update_button.pack()
+    button(title_frame, "Add / Update Movie", lambda: run(title_str_var.get())).pack()
     return add_update_movie_window
 
 
-def render_movie_details_window(app, movie_record=None, title=''):
+def render_movie_details_view_window(app: Tk, movie_record: str):
+    """provide app, movie_record(str)(unpadded), should show only a saved movie"""
+    print(movie_record, "movie_record")
+    title, director, cast, about = movie_record.split("|")
+    window = create_or_replace_window(app, f"Movie details - {title}")
+    header(window, title).pack()
+    label(window, f"Directed by: {director}").pack()
+    divider(window, justify="center").pack()
+    label(window, "Cast:").pack()
+    cast_individuals = list(map(lambda x: x.strip(), cast.split(",")))
+    for individual in cast_individuals:
+        label(window, individual).pack()
+    divider(window, justify="center").pack()
+    label(window, "About the movie:").pack()
+    label(window, about).pack()
+    return window
+
+
+def render_movie_details_edit_window(app: Tk, movie_record=None, title=""):
     """provide app, and movie_record str (optional)"""
+
+    def add_update_movie_record_fn(
+        title: str, director: str, cast: str, about: str, opt: str, window: Toplevel
+    ):
+        successfully_added = add_update_movie_record(title, director, cast, about, opt)
+        if successfully_added:
+            messagebox.showinfo(message=f"Sucessfully added movie - {title}")
+            window.destroy()
+        else:
+            messagebox.showerror(message=f"Couldn't add movie - {title}")
+
     movie_record = None if not movie_record else movie_record.split("|")
     movie_title = None if not movie_record else movie_record[0]
     window_title = "Add Movie" if not movie_title else f"Update Movie - {movie_title}"
-    movie_details_window = create_or_replace_window(
-        app, window_title
-    )
+    movie_details_window = create_or_replace_window(app, window_title)
     main_frame = frame(movie_details_window)
-    main_frame.place(relx=0.5, rely=0.5, anchor='center')
+    main_frame.place(relx=0.5, rely=0.5, anchor="center")
     title_str_var = StringVar()
     title_str_var.set("" if not movie_record else movie_title)
-    if title != '':
+    if title != "":
         title_str_var.set(title)
     director_str_var = StringVar()
     director_str_var.set("" if not movie_record else movie_record[1])
@@ -154,27 +201,35 @@ def render_movie_details_window(app, movie_record=None, title=''):
         header(movie_details_window, movie_title).pack()
     else:
         title_frame = padded_frame(main_frame)
-        form_label(title_frame, 'Movie Title').grid(row=0, column=0)
+        form_label(title_frame, "Movie Title").grid(row=0, column=0)
         input_text(title_frame, title_str_var).grid(row=0, column=1)
         title_frame.pack()
     row = 1 if not movie_title else 0
     director_frame = padded_frame(main_frame)
-    form_label(director_frame, 'Director').grid(row=row, column=0)
+    form_label(director_frame, "Director").grid(row=row, column=0)
     input_text(director_frame, director_str_var).grid(row=row, column=1)
     director_frame.pack()
     row += 1
     cast_frame = padded_frame(main_frame)
-    form_label(cast_frame, 'Cast').grid(row=row, column=0)
+    form_label(cast_frame, "Cast").grid(row=row, column=0)
     input_text(cast_frame, cast_str_var).grid(row=row, column=1)
     cast_frame.pack()
     row += 1
     about_frame = padded_frame(main_frame)
-    form_label(about_frame, 'About').grid(row=row, column=0)
+    form_label(about_frame, "About").grid(row=row, column=0)
     input_text(about_frame, about_str_var).grid(row=row, column=1)
     about_frame.pack()
     button_text = "Add Movie" if not movie_record else "Update Movie"
-    cta = button(main_frame, button_text, lambda: add_update_movie_record(
-        title_str_var.get(), director_str_var.get(), cast_str_var.get(), about_str_var.get(), "ADD" if not movie_record else "UPDATE"))
-    cta.configure(pady=2)
-    cta.pack()
+    button(
+        main_frame,
+        button_text,
+        lambda: add_update_movie_record_fn(
+            title_str_var.get(),
+            director_str_var.get(),
+            cast_str_var.get(),
+            about_str_var.get(),
+            "ADD" if not movie_record else "UPDATE",
+            window=movie_details_window,
+        ),
+    ).pack()
     return movie_details_window

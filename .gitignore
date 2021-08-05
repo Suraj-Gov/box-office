@@ -3,3 +3,5 @@ user_index.txt
 movie_index.txt
 movie_data.txt
 test.py
+__pycache__
+.vscode

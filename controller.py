@@ -3,8 +3,8 @@ from tkinter import messagebox
 from utils import *
 
 
-def verify_login(state, username, password):
-    """provide state map, username_field, password_field, returns True for successful login"""
+def verify_login(username, password):
+    """provide state map, username_field, password_field, returns username for successful login"""
     does_user_exist = check_key_exist(username, USER_INDEX_FILE)
     if does_user_exist:
         user_data = get_record(username, USER_INDEX_FILE, USER_DATA_FILE)
@@ -12,8 +12,7 @@ def verify_login(state, username, password):
         is_authenticated = verify_password(password, hash_str)
         if is_authenticated:
             messagebox.showinfo(message="You are authorized!")
-            state["user"] = username
-            return True
+            return username
         else:
             messagebox.showerror(
                 message="You are not authorized. \nPlease check your password"
@@ -52,7 +51,8 @@ def add_update_movie(movie_title):
     movie_record = get_record(movie_title, MOVIE_INDEX_FILE, MOVIE_DATA_FILE)
     if not movie_record:
         does_want_to_add_movie = messagebox.askokcancel(
-            message='Movie doesn\'t exist.\nDo you want to add the movie?')
+            message="Movie doesn't exist.\nDo you want to add the movie?"
+        )
         if does_want_to_add_movie:
             return True
         else:
@@ -72,5 +72,7 @@ def add_update_movie_record(title: str, director: str, cast: str, about: str, op
     if opt == "ADD":
         create_record(MOVIE_DATA_FILE, MOVIE_INDEX_FILE, title, data)
     elif opt == "UPDATE":
-        update_record(MOVIE_DATA_FILE, MOVIE_INDEX_FILE,
-                      title, data.ljust(RECORD_LENGTH))
+        update_record(
+            MOVIE_DATA_FILE, MOVIE_INDEX_FILE, title, data.ljust(RECORD_LENGTH)
+        )
+    return True

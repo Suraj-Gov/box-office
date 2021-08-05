@@ -2,15 +2,9 @@ from tkinter import *
 from theme import *
 
 
-def label(root, text, justify='left'):
+def label(root, text, justify="left"):
     x = Label(
-        root,
-        text=text,
-        padx=1,
-        pady=1,
-        bg=bg_color,
-        fg=font_color,
-        justify=justify
+        root, text=text, padx=1, pady=1, bg=bg_color, fg=font_color, justify=justify
     )
     return x
 
@@ -37,8 +31,8 @@ def new_window(root, title):
     return x
 
 
-def button(root, title, command):
-    x = Button(root, text=title, highlightbackground=bg_color, command=command)
+def button(root, title, command, fg="white"):
+    x = Button(root, text=title, fg=fg, highlightbackground=bg_color, command=command)
     return x
 
 
@@ -61,3 +55,7 @@ def form_label(root, title):
 def input_text(root, text):
     x = Entry(root, width=30, textvariable=text)
     return x
+
+
+def divider(root, justify="left"):
+    return label(root, "".center(100, "-"), justify=justify)

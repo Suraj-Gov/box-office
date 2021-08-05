@@ -12,23 +12,30 @@ RECORD_LENGTH = 511
 # line-break at end
 
 
-def write_between_file(filename, before_str, data, write_type='ADD'):
-    """write between file, should provide a line-break"""
+def write_between_file(filename, before_str, data, write_type="ADD"):
+    """write between file
+    should provide a line-break
+    if writing to empty file, provide empty str to before_str"""
     # https://stackoverflow.com/questions/39086/search-and-replace-a-line-in-a-file-in-python
     temp_fd, abs_path = mkstemp()
-    old_file = open(filename, 'a+')
+    old_file = open(filename, "a+")
     old_file.seek(0, SEEK_SET)
     old_file_abs_path = os.path.abspath(filename)
-    with os.fdopen(temp_fd, 'w') as new_file:
+    with os.fdopen(temp_fd, "w") as new_file:
         new_data = ""
-        for line in old_file:
-            if line != before_str:
-                new_data += line
-            else:
-                if write_type == 'ADD':
-                    new_data += data + line
+        if before_str == "":
+            # this is used when the file is empty
+            new_file.write(data)
+        else:
+            # this is used when the file has some data in it
+            for line in old_file:
+                if line != before_str:
+                    new_data += line
                 else:
-                    new_data += data
+                    if write_type == "ADD":
+                        new_data += data + line
+                    else:
+                        new_data += data
         old_file.close()
         new_file.write(new_data)
     copymode(old_file_abs_path, abs_path)
@@ -85,14 +92,15 @@ def get_offset(index_filename, search_str):
 
 
 def get_record(key, index_filename, record_filename, provided_offset=-1, unpadded=True):
-    """requires index key, optional provided_offset
+    """requires index key, optional provided_offset(int)
     returns record/data string
     returns False if no record found"""
-    offset = provided_offset if provided_offset != -1 else get_offset(
-        index_filename, key)
+    offset = (
+        provided_offset if provided_offset != -1 else get_offset(index_filename, key)
+    )
     if offset == -1:
         return False
-    with open(record_filename, 'a+') as record_file:
+    with open(record_filename, "a+") as record_file:
         record_file.seek(offset)
         record_str = record_file.readline()
         if unpadded:
@@ -101,7 +109,7 @@ def get_record(key, index_filename, record_filename, provided_offset=-1, unpadde
 
 
 def get_all_records(record_filename):
-    """ 
+    """
     requires DATA_FILE
     returns record_line[]
     returns False if no records are in file yet
@@ -112,7 +120,13 @@ def get_all_records(record_filename):
         record_lines = record_file_data.read().split("\n")
         record_lines = list(map(lambda x: x.strip(), record_lines))
         record_lines = list(filter(lambda x: x != "", record_lines))
-        return record_lines if len(record_lines) > 1 else False if record_lines[0] == "" else record_lines
+        return (
+            record_lines
+            if len(record_lines) > 1
+            else False
+            if record_lines[0] == ""
+            else record_lines
+        )
 
 
 def read_index_file(filename):
@@ -155,68 +169,63 @@ def create_record(record_filename: str, index_filename: str, key: str, data: str
         record_data.seek(0, os.SEEK_END)
         start_pos = record_data.tell()
         record_data.write(data + "\n")
-        with open(index_filename, 'a+') as index_data:
+        with open(index_filename, "a+") as index_data:
             index_data.seek(0)
             # open index_file and read to array
             idx_arr = read_index_file(index_filename)
-            # if no indexes exist
-            # if len(idx_arr) == 0:
-            #     index_data.write(f"{key}|{start_pos}\n")
-            #     return True
-            # # if only one index exist
-            # if len(idx_arr) == 1:
-            #     if idx_arr[0][0] < key:
-            #         index_data.write(f"{key}|{start_pos}\n")
-            #     else:
-            #         index_data.seek(0, os.SEEK_SET)
-            #         index_data.write(f"{key}|{start_pos}\n")
-            #     return True
-            # else:
-            if True:
-                # if multiple indexes exist do a binary_search
-                l = 0
-                r = len(idx_arr) - 1
-                next_idx = None
-                while l <= r:
-                    mid = (l + r) // 2
-                    idx, _ = idx_arr[mid]
-                    if idx < key:
-                        l = mid + 1
-                        # idx@mid < key < idx@mid+1 (between those two), insert between them
-                        try:
-                            if key < idx_arr[l][0]:
-                                next_idx = "|".join(idx_arr[l])
-                                idx_arr.insert(l, key)
-                                break
-                        except IndexError:
-                            idx_arr.append(key)
-                            next_idx = "|".join(idx_arr[-1])
-                    elif idx > key:
-                        r = mid - 1
-                        # idx@mid-1 < key < idx#mid (between those two), insert between them
-                        try:
-                            if key > idx_arr[r][0]:
-                                next_idx = "|".join(idx_arr[r])
-                                idx_arr.insert(mid, key)
-                                break
-                        except:
-                            idx_arr.insert(0, key)
-                            next_idx = "|".join(idx_arr[0])
-                # finish inserting, write to the file
-                # write just before the next index
-                write_between_file(
-                    index_filename, next_idx + "\n", f"{key}|{start_pos}\n")
-                return True
+            l = 0
+            r = len(idx_arr) - 1
+            next_idx = None
+            while l <= r:
+                mid = (l + r) // 2
+                idx, _ = idx_arr[mid]
+                if idx < key:
+                    l = mid + 1
+                    # idx@mid < key < idx@mid+1 (between those two), insert between them
+                    try:
+                        if key < idx_arr[l][0]:
+                            next_idx = "|".join(idx_arr[l])
+                            idx_arr.insert(l, key)
+                            break
+                    except IndexError:
+                        idx_arr.append(key)
+                        next_idx = idx_arr[-1]
+                elif idx > key:
+                    r = mid - 1
+                    # idx@mid-1 < key < idx#mid (between those two), insert between them
+                    try:
+                        if key > idx_arr[r][0]:
+                            next_idx = "|".join(idx_arr[r])
+                            idx_arr.insert(mid, key)
+                            break
+                    except:
+                        idx_arr.insert(0, key)
+                        next_idx = idx_arr[0][0]
+            # finish inserting, write to the file
+            # write just before the next index
+            idx_str = f"{key}|{start_pos}\n"
+            if next_idx == key:
+                # this means the key has to be written at the end
+                with open(index_filename, "a+") as idx_file:
+                    idx_file.write(idx_str)
+            else:
+                if next_idx is None:
+                    # this means the index_file is empty and this is the first idx to be added
+                    write_between_file(index_filename, "", idx_str)
+                # this means the key has to written at the start of the file
+                else:
+                    write_between_file(index_filename, next_idx + "\n", idx_str)
+        return True
 
 
 def update_record(record_filename: str, index_filename: str, key: str, record_str: str):
     """provide the key and record_str, should provide padded str for data_files"""
     does_key_exist = check_key_exist(key, index_filename)
     if does_key_exist:
-        replace_str = get_record(
-            key, index_filename, record_filename, unpadded=False)
-        write_between_file(record_filename, replace_str,
-                           record_str + "\n", write_type="REPLACE")
+        replace_str = get_record(key, index_filename, record_filename, unpadded=False)
+        write_between_file(
+            record_filename, replace_str, record_str + "\n", write_type="REPLACE"
+        )
         return True
     else:
         return None
@@ -224,22 +233,20 @@ def update_record(record_filename: str, index_filename: str, key: str, record_st
 
 def get_password_hash(password):
     """generate hash for a plaintext password"""
-    salt = hashlib.sha256(os.urandom(60)).hexdigest().encode('ascii')
-    pwdhash = hashlib.pbkdf2_hmac('sha512', password.encode('utf-8'),
-                                  salt, 100000)
+    salt = hashlib.sha256(os.urandom(60)).hexdigest().encode("ascii")
+    pwdhash = hashlib.pbkdf2_hmac("sha512", password.encode("utf-8"), salt, 100000)
     pwdhash = binascii.hexlify(pwdhash)
-    return (salt + pwdhash).decode('ascii')
+    return (salt + pwdhash).decode("ascii")
 
 
 def verify_password(provided_password, stored_password):
     """compare and check if the given plaintext password is equal to the hashed password stored"""
     salt = stored_password[:64]
     stored_password = stored_password[64:]
-    pwdhash = hashlib.pbkdf2_hmac('sha512',
-                                  provided_password.encode('utf-8'),
-                                  salt.encode('ascii'),
-                                  100000)
-    pwdhash = binascii.hexlify(pwdhash).decode('ascii')
+    pwdhash = hashlib.pbkdf2_hmac(
+        "sha512", provided_password.encode("utf-8"), salt.encode("ascii"), 100000
+    )
+    pwdhash = binascii.hexlify(pwdhash).decode("ascii")
     is_authenticated = pwdhash == stored_password
     if is_authenticated:
         print("user authenticated")
