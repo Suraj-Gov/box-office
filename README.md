@@ -9,11 +9,7 @@
 3. CRUD operations on movies
 4. Movie metadata (DONE)
 5. View movies (DONE)
-6. Search movie by title, cast or director
+6. Search movie by title
 7. Detailed movie view
-   Add reviews (optional)
 
-indexing
-seek tell
-
-Movie has TITLE, DIRECTOR, CAST, ABOUT
+Movie has TITLE, DIRECTOR, CAST, ABOUT, REVIEW

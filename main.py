@@ -59,5 +59,6 @@ def start():
 # render_view_movies_window(app, active_window)
 # TODO change to start()
 start()
+# render_movie_details_edit_window(app, None)
 
 app.mainloop()

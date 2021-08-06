@@ -4,7 +4,13 @@ from theme import *
 
 def label(root, text: str, justify="left"):
     x = Label(
-        root, text=text, padx=1, pady=1, bg=bg_color, fg=font_color, justify=justify
+        root,
+        text=text,
+        padx=1,
+        pady=1,
+        bg=bg_color,
+        fg=font_color,
+        justify=justify,
     )
     return x
 
@@ -48,7 +54,9 @@ def padded_frame(root):
 
 
 def form_label(root, title: str):
-    x = Label(root, text=title, padx=2, bg=bg_color, fg=font_color, width=14)
+    x = Label(
+        root, text=title, padx=2, bg=bg_color, fg=font_color, width=14, justify=RIGHT
+    )
     return x
 
 

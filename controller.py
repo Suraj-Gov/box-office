@@ -1,9 +1,11 @@
+from tkinter.constants import END
+from typing import List
 from filenames import *
-from tkinter import messagebox
+from tkinter import Listbox, messagebox
 from utils import *
 
 
-def verify_login(username, password):
+def verify_login(username: str, password: str):
     """provide state map, username_field, password_field, returns username for successful login"""
     does_user_exist = check_key_exist(username, USER_INDEX_FILE)
     if does_user_exist:
@@ -42,7 +44,7 @@ def verify_login(username, password):
             return False
 
 
-def add_update_movie(movie_title):
+def add_update_movie(movie_title: str):
     """provide a movie_title
     if movie title exists in record, it returns unpadded movie_record
     if movie title not exist in record,
@@ -61,14 +63,19 @@ def add_update_movie(movie_title):
         return movie_record.strip()
 
 
-def add_update_movie_record(title: str, director: str, cast: str, about: str, opt: str):
+def add_update_movie_record(
+    title: str, director: str, cast: str, about: str, rating: str, opt: str
+):
     """provide movie details, opt = "ADD" | "UPDATE"
     returns True if inserted successfully, else False"""
-    title = title.replace("|", "")
-    director = director.replace("|", "")
-    cast = cast.replace("|", "")
-    about = about.replace("|", "")
-    data = f"{title}|{director}|{cast}|{about}"
+    title = title.strip().replace("|", "")
+    director = director.strip().replace("|", "")
+    cast = cast.strip().replace("|", "")
+    about = about.strip().replace("|", "")
+    if title == "" or director == "" or cast == "" or about == "":
+        messagebox.showerror(message="Make sure all fields have some valid value.")
+        return False
+    data = f"{title}|{director}|{cast}|{about}|{rating}"
     if opt == "ADD":
         create_record(MOVIE_DATA_FILE, MOVIE_INDEX_FILE, title, data)
     elif opt == "UPDATE":
@@ -76,3 +83,32 @@ def add_update_movie_record(title: str, director: str, cast: str, about: str, op
             MOVIE_DATA_FILE, MOVIE_INDEX_FILE, title, data.ljust(RECORD_LENGTH)
         )
     return True
+
+
+def load_movies(movies_list: Listbox, movie_data: List[str]):
+    if movies_list is None:
+        return
+    movies_list.delete(0, movies_list.size() - 1)
+    movie_data.clear()
+    movie_data.extend(get_all_records(MOVIE_INDEX_FILE))
+    for movie_record_str in movie_data:
+        movie_title = movie_record_str.split("|")[0]
+        movies_list.insert(END, movie_title)
+
+
+def search_movies(movies_list: Listbox, movie_data: List[str], search_str: str):
+    """searches for movies with the given search_str"""
+    if movies_list is None:
+        return
+    movies_list.delete(0, movies_list.size() - 1)
+    movie_data.clear()
+    movie_idxs = get_all_records(MOVIE_INDEX_FILE)
+    if movie_idxs == False:
+        return
+    for movie in movie_idxs:
+        title, _ = movie.split("|")
+        if not title.find(search_str):
+            movie_data.append(movie)
+    for movie_record_str in movie_data:
+        title, _ = movie_record_str.split("|")
+        movies_list.insert(END, title)

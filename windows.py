@@ -66,29 +66,6 @@ def render_view_movies_window(app: Tk, active_window: Toplevel):
     def add_update_movie(app: Tk):
         render_add_update_movies_window(app)
 
-    def load_movies(movies_list: Listbox, movie_data: List[str]):
-        movies_list.delete(0, movies_list.size() - 1)
-        movie_data.clear()
-        movie_data.extend(get_all_records(MOVIE_INDEX_FILE))
-        for movie_record_str in movie_data:
-            movie_title = movie_record_str.split("|")[0]
-            movies_list.insert(END, movie_title)
-
-    def search_movies(movies_list: Listbox, movie_data: List[str], search_str: str):
-        """searches for movies with the given search_str"""
-        movies_list.delete(0, movies_list.size() - 1)
-        movie_data.clear()
-        movie_idxs = get_all_records(MOVIE_INDEX_FILE)
-        if movie_idxs == False:
-            return
-        for movie in movie_idxs:
-            title, _ = movie.split("|")
-            if not title.find(search_str):
-                movie_data.append(movie)
-        for movie_record_str in movie_data:
-            title, _ = movie_record_str.split("|")
-            movies_list.insert(END, title)
-
     def search(e: Event):
         search_val = search_str_var.get() + e.char
         print(search_val)
@@ -97,9 +74,11 @@ def render_view_movies_window(app: Tk, active_window: Toplevel):
     movie_data = []
     window = create_or_replace_window(app, "Movies", active_window)
     active_window = window
+    label(window, "Search movies", justify="center").pack(pady=3)
     search_text = input_text(window, search_str_var)
     search_text.bind("<Key>", search)
     search_text.pack()
+    divider(window, justify="center").pack()
     if state.user:
         label(active_window, f"Hey, {state.user}", justify="center").pack()
     button_frames = frame(window)
@@ -153,7 +132,7 @@ def render_view_movies_window(app: Tk, active_window: Toplevel):
 
 
 def render_add_update_movies_window(app: Tk):
-    def run(movie_title: str):
+    def add_update_movie_fn(movie_title: str):
         movie_status = add_update_movie(movie_title)
         if movie_status is False:
             return
@@ -171,15 +150,21 @@ def render_add_update_movies_window(app: Tk):
     title_label.configure(pady=5)
     title_label.pack()
     input_text(title_frame, text=title_str_var).pack()
-    button(title_frame, "Add / Update Movie", lambda: run(title_str_var.get())).pack()
+    button(
+        title_frame,
+        "Add / Update Movie",
+        lambda: add_update_movie_fn(title_str_var.get()),
+    ).pack()
     return add_update_movie_window
 
 
 def render_movie_details_view_window(app: Tk, movie_record: str):
     """provide app, movie_record(str)(unpadded), should show only a saved movie"""
-    title, director, cast, about = movie_record.split("|")
+    title, director, cast, about, rating_str = movie_record.split("|")
     window = create_or_replace_window(app, f"Movie details - {title}")
     header(window, title).pack()
+    rating = int(rating_str)
+    label(window, "★" * rating).pack()
     label(window, f"Directed by: {director}").pack()
     divider(window, justify="center").pack()
     label(window, "Cast:").pack()
@@ -196,11 +181,22 @@ def render_movie_details_edit_window(app: Tk, movie_record=None, title=""):
     """provide app, and movie_record str (optional)"""
 
     def add_update_movie_record_fn(
-        title: str, director: str, cast: str, about: str, opt: str, window: Toplevel
+        title: str,
+        director: str,
+        cast: str,
+        about: str,
+        rating: str,
+        opt: str,
+        window: Toplevel,
     ):
-        successfully_added = add_update_movie_record(title, director, cast, about, opt)
+        successfully_added = add_update_movie_record(
+            title, director, cast, about, rating, opt
+        )
         if successfully_added:
-            messagebox.showinfo(message=f"Sucessfully added movie - {title}")
+            msg = "Sucessfully "
+            msg += "added" if opt == "ADD" else "updated"
+            msg += f" movie - {title}"
+            messagebox.showinfo(message=msg)
             window.destroy()
         else:
             messagebox.showerror(message=f"Couldn't add movie - {title}")
@@ -208,8 +204,8 @@ def render_movie_details_edit_window(app: Tk, movie_record=None, title=""):
     movie_record = None if not movie_record else movie_record.split("|")
     movie_title = None if not movie_record else movie_record[0]
     window_title = "Add Movie" if not movie_title else f"Update Movie - {movie_title}"
-    movie_details_window = create_or_replace_window(app, window_title)
-    main_frame = frame(movie_details_window)
+    window = create_or_replace_window(app, window_title)
+    main_frame = frame(window)
     main_frame.place(relx=0.5, rely=0.5, anchor="center")
     title_str_var = StringVar()
     title_str_var.set("" if not movie_record else movie_title)
@@ -222,27 +218,42 @@ def render_movie_details_edit_window(app: Tk, movie_record=None, title=""):
     about_str_var = StringVar()
     about_str_var.set("" if not movie_record else movie_record[3])
     if movie_title:
-        header(movie_details_window, movie_title).pack()
+        header(window, movie_title).pack()
     else:
         title_frame = padded_frame(main_frame)
         form_label(title_frame, "Movie Title").grid(row=0, column=0)
         input_text(title_frame, title_str_var).grid(row=0, column=1)
         title_frame.pack()
-    row = 1 if not movie_title else 0
     director_frame = padded_frame(main_frame)
-    form_label(director_frame, "Director").grid(row=row, column=0)
-    input_text(director_frame, director_str_var).grid(row=row, column=1)
+    form_label(director_frame, "Director").grid(row=0, column=0)
+    input_text(director_frame, director_str_var).grid(row=0, column=1)
     director_frame.pack()
-    row += 1
     cast_frame = padded_frame(main_frame)
-    form_label(cast_frame, "Cast").grid(row=row, column=0)
-    input_text(cast_frame, cast_str_var).grid(row=row, column=1)
+    form_label(cast_frame, "Cast").grid(row=0, column=0)
+    input_text(cast_frame, cast_str_var).grid(row=0, column=1)
     cast_frame.pack()
-    row += 1
     about_frame = padded_frame(main_frame)
-    form_label(about_frame, "About").grid(row=row, column=0)
-    input_text(about_frame, about_str_var).grid(row=row, column=1)
+    form_label(about_frame, "About").grid(row=0, column=0)
+    input_text(about_frame, about_str_var).grid(row=0, column=1)
     about_frame.pack()
+    ratings_frame = padded_frame(main_frame)
+    form_label(ratings_frame, "Choose a rating ").grid(row=0, column=0)
+    rating_str_var = StringVar(
+        ratings_frame, value="3" if not movie_record else movie_record[4]
+    )
+    ratings = {"1 ★": "1", "2 ★": "2", "3 ★": "3", "4 ★": "4", "5 ★": "5"}
+    for idx, (k, v) in enumerate(ratings.items()):
+        Radiobutton(
+            ratings_frame,
+            variable=rating_str_var,
+            text=k,
+            value=v,
+            bg=bg_color,
+            fg=font_color,
+            padx=2,
+            foreground="yellow",
+        ).grid(column=idx + 1, row=0)
+    ratings_frame.pack()
     button_text = "Add Movie" if not movie_record else "Update Movie"
     button(
         main_frame,
@@ -252,8 +263,9 @@ def render_movie_details_edit_window(app: Tk, movie_record=None, title=""):
             director_str_var.get(),
             cast_str_var.get(),
             about_str_var.get(),
+            rating_str_var.get(),
             "ADD" if not movie_record else "UPDATE",
-            window=movie_details_window,
+            window=window,
         ),
     ).pack()
-    return movie_details_window
+    return window

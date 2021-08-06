@@ -12,7 +12,7 @@ RECORD_LENGTH = 511
 # line-break at end
 
 
-def write_between_file(filename, before_str, data, write_type="ADD"):
+def write_between_file(filename: str, before_str: str, data: str, write_type="ADD"):
     """write between file
     should provide a line-break
     if writing to empty file, provide empty str to before_str"""
@@ -23,9 +23,11 @@ def write_between_file(filename, before_str, data, write_type="ADD"):
     old_file_abs_path = os.path.abspath(filename)
     with os.fdopen(temp_fd, "w") as new_file:
         new_data = ""
+        prev_data = old_file.read()
+        old_file.seek(0, SEEK_SET)
         if before_str == "":
-            # this is used when the file is empty
-            new_file.write(data)
+            # this is used when the file is empty or when the data is needed to append at the start
+            new_file.write(data + prev_data)
         else:
             # this is used when the file has some data in it
             for line in old_file:
@@ -43,7 +45,7 @@ def write_between_file(filename, before_str, data, write_type="ADD"):
     move(abs_path, old_file_abs_path)
 
 
-def create_or_replace_window(root, title, current_window=None):
+def create_or_replace_window(root: tkinter.Tk, title: str, current_window=None):
     """Destroy current window if current_window is provided, create new window"""
     # https://www.py4u.net/discuss/172694
     if current_window is not None:
@@ -63,7 +65,7 @@ def create_or_replace_window(root, title, current_window=None):
     return new_window
 
 
-def get_offset(index_filename, search_str):
+def get_offset(index_filename: str, search_str: str):
     """requires a index key to search,
     returns offset in Int
     if no index found, returns -1"""
@@ -91,7 +93,13 @@ def get_offset(index_filename, search_str):
     return -1
 
 
-def get_record(key, index_filename, record_filename, provided_offset=-1, unpadded=True):
+def get_record(
+    key: str,
+    index_filename: str,
+    record_filename: str,
+    provided_offset=-1,
+    unpadded=True,
+):
     """requires index key, optional provided_offset(int)
     returns record/data string
     returns False if no record found"""
@@ -129,7 +137,7 @@ def get_all_records(record_filename: str):
         )
 
 
-def read_index_file(filename):
+def read_index_file(filename: str):
     """reads a index file,
     returns (idx, offset)[]
     check for empty array if no keys are found"""
@@ -145,7 +153,7 @@ def read_index_file(filename):
     return arr
 
 
-def check_key_exist(key, index_filename):
+def check_key_exist(key: str, index_filename: str):
     """checks key existance
     returns True if exists
     returns False if not"""
@@ -231,7 +239,7 @@ def update_record(record_filename: str, index_filename: str, key: str, record_st
         return None
 
 
-def get_password_hash(password):
+def get_password_hash(password: str):
     """generate hash for a plaintext password"""
     salt = hashlib.sha256(os.urandom(60)).hexdigest().encode("ascii")
     pwdhash = hashlib.pbkdf2_hmac("sha512", password.encode("utf-8"), salt, 100000)
@@ -239,7 +247,7 @@ def get_password_hash(password):
     return (salt + pwdhash).decode("ascii")
 
 
-def verify_password(provided_password, stored_password):
+def verify_password(provided_password: str, stored_password: str):
     """compare and check if the given plaintext password is equal to the hashed password stored"""
     salt = stored_password[:64]
     stored_password = stored_password[64:]
