@@ -1,5 +1,6 @@
 from io import SEEK_END, SEEK_SET
 import tkinter
+from typing import List
 from filenames import MOVIE_DATA_FILE, USER_INDEX_FILE
 import os
 import binascii
@@ -237,6 +238,52 @@ def update_record(record_filename: str, index_filename: str, key: str, record_st
         return True
     else:
         return None
+
+
+def delete_record(record_filename: str, index_filename: str, key: str):
+    """deletes a record and it's index from files"""
+
+    def stringify(x):
+        """just converts the int part to str, need to provide a list of two elements"""
+        x[1] = str(x[1])
+        return "|".join(x) + "\n"
+
+    does_key_exist = check_key_exist(key, index_filename)
+    if does_key_exist:
+        key_to_delete_offset = get_offset(index_filename, key)
+        with open(record_filename, "a+") as record_file_data:
+            record_file_data.seek(0, SEEK_SET)
+            old_data = list(map(lambda x: x.strip(), record_file_data.readlines()))
+            record_file_data.truncate(0)
+            for idx, data in enumerate(old_data):
+                record_key = data.split("|")[0]
+                if key == record_key:
+                    old_data.pop(idx)
+            record_file_data.writelines(
+                list(map(lambda x: x.ljust(RECORD_LENGTH) + "\n", old_data))
+            )
+        with open(index_filename, "a+") as index_file_data:
+            index_file_data.seek(0, SEEK_SET)
+            # split by "|"
+            old_idxs = list(map(lambda x: x.split("|"), index_file_data.readlines()))
+            # convert str offsets to int
+            old_idxs = list(map(lambda x: [x[0], int(x[1])], old_idxs))
+            index_file_data.truncate(0)
+            for i, iidx in enumerate(old_idxs):
+                idx_offset = iidx[1]
+                # if the key equals the key to delete
+                if key_to_delete_offset == idx_offset:
+                    old_idxs.pop(i)
+                    # so if the item gets removed, another item shifts to left, so we are checking if that has a higher offset
+                    if old_idxs[i][1] >= key_to_delete_offset:
+                        old_idxs[i][1] -= RECORD_LENGTH
+                # else if the key is greater than the delete_offset
+                # (because a record is deleted, then we need to reduce the offset by RECORD_LENGTH)
+                elif idx_offset >= key_to_delete_offset:
+                    iidx[1] -= RECORD_LENGTH
+            # converting back to index format and writing to index_file
+            index_file_data.writelines(list(map(lambda x: stringify(x), old_idxs)))
+    return True
 
 
 def get_password_hash(password: str):

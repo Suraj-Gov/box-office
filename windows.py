@@ -201,6 +201,19 @@ def render_movie_details_edit_window(app: Tk, movie_record=None, title=""):
         else:
             messagebox.showerror(message=f"Couldn't add movie - {title}")
 
+    def delete_movie_record(title: str, window: Toplevel):
+        wanna_delete_movie = messagebox.askokcancel(
+            message=f"Are you sure you want to delete movie - {title}"
+        )
+        if not wanna_delete_movie:
+            return
+        successfully_deleted = delete_record(MOVIE_DATA_FILE, MOVIE_INDEX_FILE, title)
+        if successfully_deleted:
+            messagebox.showinfo(message="Successfully deleted movie")
+            window.destroy()
+        else:
+            messagebox.showerror(message="Couldn't delete movie")
+
     movie_record = None if not movie_record else movie_record.split("|")
     movie_title = None if not movie_record else movie_record[0]
     window_title = "Add Movie" if not movie_title else f"Update Movie - {movie_title}"
@@ -255,8 +268,9 @@ def render_movie_details_edit_window(app: Tk, movie_record=None, title=""):
         ).grid(column=idx + 1, row=0)
     ratings_frame.pack()
     button_text = "Add Movie" if not movie_record else "Update Movie"
+    button_frame = padded_frame(main_frame)
     button(
-        main_frame,
+        button_frame,
         button_text,
         lambda: add_update_movie_record_fn(
             title_str_var.get(),
@@ -267,5 +281,12 @@ def render_movie_details_edit_window(app: Tk, movie_record=None, title=""):
             "ADD" if not movie_record else "UPDATE",
             window=window,
         ),
-    ).pack()
+    ).grid(row=0, column=0)
+    if button_text == "Update Movie":
+        button(
+            button_frame,
+            "Delete Movie",
+            lambda: delete_movie_record(title_str_var.get(), window=window),
+        ).grid(row=0, column=1)
+    button_frame.pack()
     return window
