@@ -38,7 +38,7 @@ def new_window(root, title: str):
 
 
 def button(root, title: str, command, fg="white"):
-    x = Button(root, text=title, fg=fg, highlightbackground=bg_color, command=command)
+    x = Button(root, text=title, fg=fg, command=command)
     return x
 
 
