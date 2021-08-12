@@ -21,13 +21,13 @@ def write_between_file(filename: str, before_str: str, data: str, write_type="AD
     old_file.seek(0, SEEK_SET)
     old_file_content = old_file.readlines()
     new_data = ""
-    if data[-1] == "\n":
-        data = data[0:-1]
     if before_str == "":
         # this is used when the file is empty or when the data is needed to append at the start
-        old_file.seek(0, SEEK_SET)
+        if data[-1] != "\n":
+            data += "\n"
+        old_file.truncate(0)
         old_file_content.insert(0, data)
-        old_file.writelines(list(map(lambda x: x + "\n", old_file_content)))
+        old_file.writelines(old_file_content)
         old_file.close()
     else:
         if data[-1] != "\n":
