@@ -12,7 +12,6 @@ def render_start_window(app: Tk, active_window: Toplevel, cfn_critic, cfn_user):
     start_window = create_or_replace_window(app, "Box Office", active_window)
     start_window.title("Box Office")
     start_window.geometry(window_geometry)
-    start_window.configure(background=bg_color)
     title = header(start_window, "Box Office")
     title.pack()
 
@@ -68,7 +67,6 @@ def render_view_movies_window(app: Tk, active_window: Toplevel):
 
     def search(e: Event):
         search_val = search_str_var.get() + e.char
-        print(search_val)
         search_movies(movies_list, movie_data, search_val)
 
     movie_data = []
@@ -87,46 +85,38 @@ def render_view_movies_window(app: Tk, active_window: Toplevel):
     button(button_frames, "Add / Update Movie", lambda: add_update_movie(app)).grid(
         row=1, column=0
     )
-    button(button_frames, "⟳", lambda: load_movies(movies_list, movie_data)).grid(
-        row=1, column=1
+    button(
+        button_frames, "⟳", lambda: load_movies(movies_list, movie_data, window)
+    ).grid(row=1, column=1)
+
+    scroll = Scrollbar(window)
+    scroll.pack(side=RIGHT, fill=Y)
+    movies_list = Listbox(
+        window,
+        yscrollcommand=scroll.set,
+        height=30,
+        font=("bold", 28),
     )
+    load_movies(movies_list, movie_data, window)
+    scroll.config(command=movies_list.yview)
+    movies_list.pack(fill=X)
 
-    movie_indexes = read_index_file(MOVIE_INDEX_FILE)
-    if len(movie_indexes) == 0:
-        no_movies_stored_label = label(window, text="No movies stored", justify=CENTER)
-        no_movies_stored_label.pack()
-    else:
-        scroll = Scrollbar(window)
-        scroll.pack(side=RIGHT, fill=Y)
-        movies_list = Listbox(
-            window,
-            bg=bg_color,
-            fg=font_color,
-            yscrollcommand=scroll.set,
-            height=30,
-            font=("bold", 28),
-            selectbackground=lighter_bg_color,
+    def select_movie(_):
+        idx = movies_list.curselection()[0]
+        movie_title, offset = movie_data[idx].split("|")
+        data = get_record(
+            movie_title,
+            MOVIE_INDEX_FILE,
+            MOVIE_DATA_FILE,
+            int(offset),
+            unpadded=True,
         )
-        load_movies(movies_list, movie_data)
-        scroll.config(command=movies_list.yview)
-        movies_list.pack(fill=X)
+        if state.user:
+            render_movie_details_edit_window(app, movie_record=data)
+        else:
+            render_movie_details_view_window(app, data)
 
-        def select_movie(_):
-            idx = movies_list.curselection()[0]
-            movie_title, offset = movie_data[idx].split("|")
-            data = get_record(
-                movie_title,
-                MOVIE_INDEX_FILE,
-                MOVIE_DATA_FILE,
-                int(offset),
-                unpadded=True,
-            )
-            if state.user:
-                render_movie_details_edit_window(app, movie_record=data)
-            else:
-                render_movie_details_view_window(app, data)
-
-        movies_list.bind("<<ListboxSelect>>", select_movie)
+    movies_list.bind("<<ListboxSelect>>", select_movie)
 
     return window
 
@@ -173,7 +163,10 @@ def render_movie_details_view_window(app: Tk, movie_record: str):
         label(window, individual).pack()
     divider(window, justify="center").pack()
     label(window, "About the movie:").pack()
-    label(window, about).pack()
+    aboutText = Text(window, padx=4, pady=8)
+    aboutText.insert(END, about)
+    aboutText.config(state=DISABLED)
+    aboutText.pack()
     return window
 
 
@@ -261,8 +254,6 @@ def render_movie_details_edit_window(app: Tk, movie_record=None, title=""):
             variable=rating_str_var,
             text=k,
             value=v,
-            bg=bg_color,
-            fg=font_color,
             padx=2,
             foreground="yellow",
         ).grid(column=idx + 1, row=0)

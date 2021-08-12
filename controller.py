@@ -1,7 +1,7 @@
-from tkinter.constants import END
+from tkinter.constants import END, X
 from typing import List
 from filenames import *
-from tkinter import Listbox, messagebox
+from tkinter import Listbox, Scrollbar, Toplevel, messagebox
 from utils import *
 
 
@@ -34,7 +34,7 @@ def verify_login(username: str, password: str):
                 messagebox.showinfo(
                     message="Signed up successfully.\nPlease login again"
                 )
-                return False
+                return "LOGIN_AGAIN"
             else:
                 messagebox.showerror(
                     message="Something went wrong when signing up.\nPlease check the logs",
@@ -85,9 +85,7 @@ def add_update_movie_record(
     return True
 
 
-def load_movies(movies_list: Listbox, movie_data: List[str]):
-    if movies_list is None:
-        return
+def load_movies(movies_list: Listbox, movie_data: List[str], window: Toplevel):
     movies_list.delete(0, movies_list.size() - 1)
     movie_data.clear()
     movie_data.extend(get_all_records(MOVIE_INDEX_FILE))
@@ -107,7 +105,7 @@ def search_movies(movies_list: Listbox, movie_data: List[str], search_str: str):
         return
     for movie in movie_idxs:
         title, _ = movie.split("|")
-        if not title.find(search_str):
+        if title.lower().find(search_str) >= 0:
             movie_data.append(movie)
     for movie_record_str in movie_data:
         title, _ = movie_record_str.split("|")

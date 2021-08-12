@@ -15,35 +15,35 @@ RECORD_LENGTH = 511
 
 def write_between_file(filename: str, before_str: str, data: str, write_type="ADD"):
     """write between file
-    should provide a line-break
+    do not provide a line break
     if writing to empty file, provide empty str to before_str"""
-    # https://stackoverflow.com/questions/39086/search-and-replace-a-line-in-a-file-in-python
-    temp_fd, abs_path = mkstemp()
     old_file = open(filename, "a+")
     old_file.seek(0, SEEK_SET)
-    old_file_abs_path = os.path.abspath(filename)
-    with os.fdopen(temp_fd, "w") as new_file:
-        new_data = ""
-        prev_data = old_file.read()
+    old_file_content = old_file.readlines()
+    new_data = ""
+    if data[-1] == "\n":
+        data = data[0:-1]
+    if before_str == "":
+        # this is used when the file is empty or when the data is needed to append at the start
         old_file.seek(0, SEEK_SET)
-        if before_str == "":
-            # this is used when the file is empty or when the data is needed to append at the start
-            new_file.write(data + prev_data)
-        else:
-            # this is used when the file has some data in it
-            for line in old_file:
-                if line != before_str:
-                    new_data += line
-                else:
-                    if write_type == "ADD":
-                        new_data += data + line
-                    else:
-                        new_data += data
+        old_file_content.insert(0, data)
+        old_file.writelines(list(map(lambda x: x + "\n", old_file_content)))
         old_file.close()
-        new_file.write(new_data)
-    copymode(old_file_abs_path, abs_path)
-    os.remove(old_file_abs_path)
-    move(abs_path, old_file_abs_path)
+    else:
+        if data[-1] != "\n":
+            data += "\n"
+        # this is used when the file has some data in it
+        for line in old_file_content:
+            if line.strip() != before_str.strip():
+                new_data += line
+            else:
+                if write_type == "ADD":
+                    new_data += data + line
+                else:
+                    new_data += data
+        old_file.truncate(0)
+        old_file.write(new_data)
+    old_file.close()
 
 
 def create_or_replace_window(root: tkinter.Tk, title: str, current_window=None):
@@ -56,7 +56,6 @@ def create_or_replace_window(root: tkinter.Tk, title: str, current_window=None):
     new_window.geometry(window_geometry)
     new_window.resizable(False, False)
     new_window.title(title)
-    new_window.configure(bg=bg_color)
 
     # if the user kills the window via the window manager,
     # exit the application.
@@ -129,13 +128,7 @@ def get_all_records(record_filename: str):
         record_lines = record_file_data.read().split("\n")
         record_lines = list(map(lambda x: x.strip(), record_lines))
         record_lines = list(filter(lambda x: x != "", record_lines))
-        return (
-            record_lines
-            if len(record_lines) > 1
-            else False
-            if record_lines[0] == ""
-            else record_lines
-        )
+        return record_lines if len(record_lines) > 0 else []
 
 
 def read_index_file(filename: str):
@@ -212,18 +205,18 @@ def create_record(record_filename: str, index_filename: str, key: str, data: str
                         next_idx = idx_arr[0][0]
             # finish inserting, write to the file
             # write just before the next index
-            idx_str = f"{key}|{start_pos}\n"
+            idx_str = f"{key}|{start_pos}"
             if next_idx == key:
                 # this means the key has to be written at the end
                 with open(index_filename, "a+") as idx_file:
-                    idx_file.write(idx_str)
+                    idx_file.write(idx_str + "\n")
             else:
                 if next_idx is None:
                     # this means the index_file is empty and this is the first idx to be added
                     write_between_file(index_filename, "", idx_str)
                 # this means the key has to written at the start of the file
                 else:
-                    write_between_file(index_filename, next_idx + "\n", idx_str)
+                    write_between_file(index_filename, next_idx, idx_str)
         return True
 
 
@@ -233,7 +226,7 @@ def update_record(record_filename: str, index_filename: str, key: str, record_st
     if does_key_exist:
         replace_str = get_record(key, index_filename, record_filename, unpadded=False)
         write_between_file(
-            record_filename, replace_str, record_str + "\n", write_type="REPLACE"
+            record_filename, replace_str, record_str, write_type="REPLACE"
         )
         return True
     else:
@@ -252,13 +245,14 @@ def delete_record(record_filename: str, index_filename: str, key: str):
     if does_key_exist:
         key_to_delete_offset = get_offset(index_filename, key)
         with open(record_filename, "a+") as record_file_data:
-            record_file_data.seek(0, SEEK_SET)
+            record_file_data.seek(0)
             old_data = list(map(lambda x: x.strip(), record_file_data.readlines()))
             record_file_data.truncate(0)
             for idx, data in enumerate(old_data):
                 record_key = data.split("|")[0]
                 if key == record_key:
                     old_data.pop(idx)
+                    break
             record_file_data.writelines(
                 list(map(lambda x: x.ljust(RECORD_LENGTH) + "\n", old_data))
             )
@@ -274,16 +268,20 @@ def delete_record(record_filename: str, index_filename: str, key: str):
                 # if the key equals the key to delete
                 if key_to_delete_offset == idx_offset:
                     old_idxs.pop(i)
+                    if len(old_idxs) == 0:
+                        break
                     # so if the item gets removed, another item shifts to left, so we are checking if that has a higher offset
-                    if old_idxs[i][1] >= key_to_delete_offset:
-                        old_idxs[i][1] -= RECORD_LENGTH
+                if old_idxs[i][1] >= key_to_delete_offset:
+                    old_idxs[i][1] -= RECORD_LENGTH + 1
                 # else if the key is greater than the delete_offset
                 # (because a record is deleted, then we need to reduce the offset by RECORD_LENGTH)
                 elif idx_offset >= key_to_delete_offset:
-                    iidx[1] -= RECORD_LENGTH
+                    iidx[1] -= RECORD_LENGTH + 1
             # converting back to index format and writing to index_file
             index_file_data.writelines(list(map(lambda x: stringify(x), old_idxs)))
-    return True
+            return True
+    else:
+        return False
 
 
 def get_password_hash(password: str):
@@ -304,6 +302,5 @@ def verify_password(provided_password: str, stored_password: str):
     pwdhash = binascii.hexlify(pwdhash).decode("ascii")
     is_authenticated = pwdhash == stored_password
     if is_authenticated:
-        print("user authenticated")
         return True
     return False

@@ -24,6 +24,8 @@ def login_user(username_field: StringVar, password_field: StringVar):
     global app
     global active_window
     is_authenticated = verify_login(username_field, password_field)
+    if is_authenticated == "LOGIN_AGAIN":
+        return
     if is_authenticated:
         state.user = is_authenticated
         state.role = "CRITIC"

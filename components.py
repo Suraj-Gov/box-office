@@ -1,5 +1,5 @@
 from tkinter import *
-from theme import *
+from theme import window_geometry
 
 
 def label(root, text: str, justify="left"):
@@ -8,8 +8,6 @@ def label(root, text: str, justify="left"):
         text=text,
         padx=1,
         pady=1,
-        bg=bg_color,
-        fg=font_color,
         justify=justify,
     )
     return x
@@ -20,8 +18,6 @@ def header(root, title: str):
         root,
         pady=4,
         text=title,
-        fg=font_color,
-        bg=bg_color,
         font=("bold", 32),
         justify="center",
     )
@@ -33,17 +29,16 @@ def new_window(root, title: str):
     x.geometry(window_geometry)
     x.resizable(False, False)
     x.title(title)
-    x.configure(bg=bg_color)
     return x
 
 
-def button(root, title: str, command, fg="white"):
+def button(root, title: str, command, fg="black"):
     x = Button(root, text=title, fg=fg, command=command)
     return x
 
 
 def frame(root):
-    x = Frame(root, padx=4, pady=4, bg=bg_color)
+    x = Frame(root, padx=4, pady=4)
     return x
 
 
@@ -54,9 +49,7 @@ def padded_frame(root):
 
 
 def form_label(root, title: str):
-    x = Label(
-        root, text=title, padx=2, bg=bg_color, fg=font_color, width=14, justify=RIGHT
-    )
+    x = Label(root, text=title, padx=2, width=14, justify=RIGHT)
     return x
 
 
