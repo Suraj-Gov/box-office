@@ -2,7 +2,7 @@
 
 [Project Synopsis](https://docs.google.com/document/d/1fL7SidSWYuzavQPyMzn1btPplhUJ58wV_n5QqON1ZQI/edit?usp=sharing)
 
-[Project Report]()
+[Project Report](https://docs.google.com/document/d/1RhWWamriRiSJfKjePFwRvim8Nqlogh6HPpgwlTHZiZI/edit?usp=sharing)
 
 ### Requirements
 
